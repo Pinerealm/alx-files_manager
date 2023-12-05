@@ -9,11 +9,14 @@ class DBClient {
     const url = `mongodb://${host}:${port}`;
 
     this.client = new MongoClient(url, { useUnifiedTopology: true });
-    this.client.connect((err) => {
-      if (err) console.log(err);
-      else console.log(`Connected to ${host}:${port}`);
-    });
+    // Connect to the DB promise-style
+    this.client.connect()
+      .then(() => console.log(`Connected to ${host}:${port}`))
+      .catch((err) => console.log(err));
+
     this.db = this.client.db(database);
+    this.users = this.db.collection('users');
+    this.files = this.db.collection('files');
   }
 
   isAlive() {
@@ -21,29 +24,25 @@ class DBClient {
   }
 
   async nbUsers() {
-    const users = this.db.collection('users');
-    const countUsers = await users.countDocuments();
+    const countUsers = await this.users.countDocuments();
     return countUsers;
   }
 
   async nbFiles() {
-    const files = this.db.collection('files');
-    const countFiles = await files.countDocuments();
+    const countFiles = await this.files.countDocuments();
     return countFiles;
   }
 
   // Check if an email already exists in the DB
   async emailExists(email) {
-    const users = this.db.collection('users');
-    const countUsers = await users.countDocuments({ email });
+    const countUsers = await this.users.countDocuments({ email });
     return countUsers !== 0;
   }
 
-  // Create and save a new user in the DB
-  async createUser(email, password) {
-    const users = this.db.collection('users');
-    const newUser = await users.insertOne({ email, password });
-    return { id: newUser.insertedId, email };
+  // Get a user from the DB using his email and password
+  async getUser(email, password) {
+    const user = await this.users.findOne({ email, password });
+    return user;
   }
 }
 
